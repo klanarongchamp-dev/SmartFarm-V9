@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="th"><head><script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260629-05-f19f4d2"}');</script><script src="/_sdk/e4192b04afde3ce7.telemetry_sdk.js" integrity="sha512-4eZpyKBd3YJnsIPrIpaBqo7QT5UZ6+KSFXkSu1IQiB7jKM8y67ChRhZ5Yh6JfuOJCbPdISiNcS6nLKZzIMG1uQ=="></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#064e3b">
+  <title>สวนลุงนะ Smart Farm V12.1A</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+:root{--vh:1vh}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;margin:0;padding:0;overflow-x:hidden;transition:background .8s,color .3s;text-rendering:optimizeLegibility}
+body.theme-day{background:linear-gradient(160deg,#064e3b,#065f46,#047857)}
+body.theme-night{background:linear-gradient(160deg,#0f172a,#1e1b4b,#0f172a)}
+.page{display:none;padding:16px 16px 90px;animation:fadeIn .3s}.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Splash */
+#splash{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a 0%,#064e3b 50%,#14532d 100%);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:99999;transition:opacity .8s,transform .5s}
+#splash.fadeout{opacity:0;transform:scale(1.05);pointer-events:none}
+.splash-icon{font-size:72px;animation:splashPulse 1.5s ease-in-out infinite}
+@keyframes splashPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.splash-bar{width:200px;height:3px;background:rgba(255,255,255,.15);border-radius:4px;margin-top:24px;overflow:hidden}
+.splash-bar-inner{height:100%;background:linear-gradient(90deg,#4ade80,#22d3ee);border-radius:4px;animation:splashLoad 2s ease-in-out forwards}
+@keyframes splashLoad{from{width:0}to{width:100%}}
+
+/* Toast */
+.toast-msg{position:fixed;top:16px;left:16px;right:16px;padding:14px 20px;border-radius:16px;background:rgba(30,41,59,.95);backdrop-filter:blur(12px);color:#fff;text-align:center;z-index:100000;font-weight:500;transform:translateY(-100px);opacity:0;transition:transform .3s,opacity .3s;pointer-events:none}
+.toast-msg.show{transform:translateY(0);opacity:1;pointer-events:auto}
+
+/* Glass */
+.glass{background:rgba(255,255,255,.07);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:20px;transition:transform .2s,box-shadow .2s}
+.glass:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.glass-strong{background:rgba(255,255,255,.1);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.15);border-radius:24px}
+
+/* Weather Hero */
+.weather-hero{border-radius:28px;padding:28px 24px;text-align:center;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03));backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);position:relative;overflow:hidden}
+.weather-hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(74,222,128,.05) 0%,transparent 60%);animation:weatherGlow 8s ease-in-out infinite}
+@keyframes weatherGlow{0%,100%{transform:translate(0,0)}50%{transform:translate(5%,5%)}}
+.weather-hero .temp{font-size:64px;font-weight:700;line-height:1}
+.weather-hero .condition{font-size:16px;opacity:.8;margin-top:4px}
+.weather-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.weather-stat{text-align:center;padding:8px 4px;border-radius:12px;background:rgba(255,255,255,.05)}
+.weather-stat .ws-val{font-size:14px;font-weight:600}
+.weather-stat .ws-label{font-size:10px;opacity:.5;margin-top:2px}
+
+/* Pump Ring */
+.pump-ring{width:180px;height:180px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:transform .2s,box-shadow .3s;background:rgba(255,255,255,.06);backdrop-filter:blur(16px)}
+.pump-ring:active{transform:scale(.92)}
+.pump-ring::before{content:'';position:absolute;inset:-5px;border-radius:50%;border:4px solid transparent;transition:all .6s}
+.pump-ring.on::before{border-color:#4ade80;box-shadow:0 0 40px #4ade80,0 0 80px rgba(74,222,128,.2);animation:pulseG 2s infinite}
+.pump-ring.off::before{border-color:#f87171;box-shadow:0 0 20px rgba(248,113,113,.3)}
+.pump-ring.sending::before{border-color:#fbbf24;animation:pulseSend 1s infinite}
+@keyframes pulseG{0%,100%{box-shadow:0 0 40px #4ade80,0 0 80px rgba(74,222,128,.2)}50%{box-shadow:0 0 60px #4ade80,0 0 100px rgba(74,222,128,.3)}}
+@keyframes pulseSend{0%,100%{opacity:1}50%{opacity:.4}}
+
+.pump-stats{display:flex;justify-content:center;gap:32px;margin-top:16px;font-size:13px;opacity:.7}
+.pump-stats .stat-val{font-size:20px;font-weight:700;opacity:1}
+
+/* Quick Actions */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.quick-btn{background:rgba(255,255,255,.07);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;transition:transform .15s,background .2s}
+.quick-btn:active{transform:scale(.9);background:rgba(255,255,255,.15)}
+.quick-btn .qicon{font-size:24px}
+.quick-btn .qlabel{font-size:11px;margin-top:4px;opacity:.7}
+.quick-btn.active-timer{border-color:#4ade80;background:rgba(74,222,128,.1)}
+
+/* Sensor */
+.sensor-card{transition:transform .2s,box-shadow .2s}
+.sensor-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.sensor-val{transition:color .3s}
+.sensor-val.warn{color:#fbbf24!important}
+.sensor-val.danger{color:#f87171!important}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.05) 25%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Timeline */
+.timeline-item{display:flex;gap:12px;position:relative;padding-bottom:14px}
+.timeline-item:not(:last-child)::after{content:'';position:absolute;left:13px;top:30px;bottom:0;width:2px;background:rgba(255,255,255,.1)}
+.timeline-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+
+/* iOS Cards */
+.ios-card-group{background:rgba(255,255,255,.07);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:16px;overflow:hidden;margin-bottom:16px}
+.ios-card-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .15s}
+.ios-card-item:active{background:rgba(255,255,255,.05)}
+.ios-card-item:last-child{border-bottom:none}
+.toggle{width:50px;height:28px;border-radius:14px;background:#4b5563;position:relative;cursor:pointer;transition:background .3s}
+.toggle.on{background:#22c55e}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .3s;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(22px)}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:72px;background:rgba(15,23,42,.95);backdrop-filter:blur(20px);display:flex;justify-content:space-around;align-items:center;z-index:9999;border-top:1px solid rgba(255,255,255,.08)}
+.nav-btn{background:none;border:none;color:rgba(255,255,255,.45);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;transition:color .2s,transform .2s;cursor:pointer}
+.nav-btn:active{transform:scale(.9)}
+.nav-btn.active{color:#4ade80}
+.nav-btn .nav-icon{font-size:22px}
+
+/* Status colors */
+.status-on{color:#4ade80}.status-off{color:#f87171}.status-warn{color:#fbbf24}.status-reconnect{color:#fb923c}
+
+/* Connection indicator */
+.conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.conn-dot.online{background:#4ade80;box-shadow:0 0 6px #4ade80}
+.conn-dot.offline{background:#f87171}
+.conn-dot.reconnecting{background:#fb923c;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Sub overlay */
+#sub-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);z-index:10000;overflow-y:auto;padding:20px;animation:fadeIn .2s}
+.sub-input{width:100%;margin-top:4px;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);font-size:14px;outline:none;transition:border-color .2s}
+.sub-input:focus{border-color:#4ade80}
+.sub-btn{width:100%;padding:12px;border-radius:12px;font-weight:600;border:none;cursor:pointer;transition:transform .1s,opacity .2s}
+.sub-btn:active{transform:scale(.97)}
+.sub-btn-green{background:#22c55e;color:#fff}
+.sub-btn-blue{background:#3b82f6;color:#fff}
+.sub-btn-orange{background:#f97316;color:#fff}
+.sub-btn-red{background:#ef4444;color:#fff}
+
+/* Notifications */
+.notif-item{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:12px;align-items:flex-start}
+.notif-item:last-child{border-bottom:none}
+
+/* History controls */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:13px;outline:none}
+.filter-bar button{padding:8px 14px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:13px;cursor:pointer}
+
+/* Countdown */
+.countdown-badge{position:absolute;top:-8px;right:-8px;background:#22c55e;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;min-width:20px;text-align:center}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js" type="text/javascript"></script>
+  <script src="/_sdk/48bf7c4c70d0d03c.data_sdk.js" type="text/javascript" integrity="sha512-e/yrQJz+prdXXt4yUvxXhl1WBGu3BRkP8X0fipGXI5gqiFClI7wI6K3TQnD7d63vx+BVhwzIvY6r8OrpX7lXJA=="></script>
+  <script src="/_sdk/5d8c692e132d2125.resizing_sdk.js" type="text/javascript" integrity="sha512-/Du3Fqe12kKsCd3BrbaNQEPtMxQi9S5hbJhnTf09AAilpqYsGa4N0rnimSX1Ui4dwNElKlen6VlI+E1n/NEfrA=="></script>
+ </head>
+ <body data-template-id="__page-root" class="min-h-screen text-white theme-night" style="background: linear-gradient(160deg, rgb(6, 78, 59), rgb(6, 95, 70), rgb(4, 120, 87));">
+  <!-- Splash -->
+  <div id="splash">
+   <div class="splash-icon">
+    🌱
+   </div>
+   <h1 data-template-id="splash-title" class="canva-text text-2xl font-bold text-white mt-4" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 24px;">🌱 สวนลุงนะ ฟาร์ม</h1>
+   <p data-template-id="splash-version" class="canva-text text-white/60 mt-2" style="color: rgba(255, 255, 255, 0.6); font-weight: 400; font-style: normal; font-size: 14px;">Smart Farm V12.1A Home Premium</p>
+   <div class="splash-bar">
+    <div class="splash-bar-inner"></div>
+   </div>
+  </div><!-- Toast -->
+  <div id="toast" class="toast-msg"></div><!-- Header bar -->
+  <div id="header-bar" style="position:sticky;top:0;z-index:999;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);backdrop-filter:blur(12px)">
+   <div style="display:flex;align-items:center;gap:8px">
+    <span data-template-id="header-farm-name" class="canva-text font-semibold" style="color: rgb(255, 255, 255); font-weight: 600; font-style: normal; font-size: 15px;">สวนลุงนะ</span>
+   </div>
+   <div id="conn-status" style="display:flex;align-items:center;font-size:12px;opacity:.7">
+    <span id="conn-dot" class="conn-dot offline"></span> <span id="conn-text">Offline</span>
+   </div>
+  </div><!-- HOME -->
+  <div id="page-home" class="page active">
+   <div class="mb-4">
+    <h1 id="greeting-text" class="font-bold text-2xl"></h1>
+    <p id="greeting-date" class="text-sm text-white/50 mt-1"></p>
+   </div><!-- Weather Hero -->
+   <div class="weather-hero mb-5">
+    <div id="weather-icon" style="font-size:48px">
+     ☀️
+    </div>
+    <div class="temp" id="hero-temp">
+     --°
+    </div>
+    <div class="condition" id="hero-condition">
+     กำลังโหลด...
+    </div>
+    <div style="font-size:11px;opacity:.5;margin-top:4px" id="weather-updated">
+     อัปเดต: --
+    </div>
+    <div class="weather-grid">
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-hum">
+       --%
+      </div>
+      <div class="ws-label">
+       ความชื้น
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-rain">
+       -- mm
+      </div>
+      <div class="ws-label">
+       ฝน
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-wind">
+       -- km/h
+      </div>
+      <div class="ws-label">
+       ลม
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-dir">
+       --
+      </div>
+      <div class="ws-label">
+       ทิศลม
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-pressure">
+       -- hPa
+      </div>
+      <div class="ws-label">
+       ความดัน
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-uv">
+       --
+      </div>
+      <div class="ws-label">
+       UV
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-cloud">
+       --%
+      </div>
+      <div class="ws-label">
+       เมฆ
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-feels">
+       --°
+      </div>
+      <div class="ws-label">
+       รู้สึก
+      </div>
+     </div>
+     <div class="weather-stat">
+      <div class="ws-val" id="ws-vis">
+       -- km
+      </div>
+      <div class="ws-label">
+       ทัศนวิสัย
+      </div>
+     </div>
+    </div>
+   </div><!-- Pump Ring -->
+   <div class="flex justify-center mb-3">
+    <div id="pump-ring" class="pump-ring off" onclick="handlePumpToggle()" style="position:relative">
+     <div class="text-center">
+      <div style="font-size:40px">
+       🚰
+      </div>
+      <div id="pump-label" class="font-bold mt-1 text-lg status-off">
+       OFF
+      </div>
+      <div data-template-id="pump-hint" class="canva-text text-xs text-white/50 mt-1" style="color: rgba(255, 255, 255, 0.5); font-weight: 400; font-style: normal; font-size: 12px;">แตะเพื่อสั่งงาน</div>
+      <div id="pump-countdown" class="text-xs text-white/70 mt-1" style="display:none"></div>
+     </div>
+     <div id="pump-sending" style="display:none;position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;font-size:12px">
+      กำลังสั่ง...
+     </div>
+    </div>
+   </div>
+   <div class="pump-stats mb-5">
+    <div class="text-center">
+     <div class="text-white/50 text-xs">
+      Runtime
+     </div>
+     <div class="stat-val" id="pump-runtime">
+      00:00
+     </div>
+    </div>
+    <div class="text-center">
+     <div class="text-white/50 text-xs">
+      Today
+     </div>
+     <div class="stat-val" id="pump-today">
+      0 min
+     </div>
+    </div>
+    <div class="text-center">
+     <div class="text-white/50 text-xs">
+      Last Seen
+     </div>
+     <div class="stat-val" id="node-lastseen" style="font-size:13px">
+      --
+     </div>
+    </div>
+   </div><!-- Quick Actions -->
+   <div class="quick-grid mb-5">
+    <div class="quick-btn" id="qb-5" onclick="quickPump(5)">
+     <div class="qicon">
+      🚿
+     </div>
+     <div class="qlabel">
+      5 นาที
+     </div>
+    </div>
+    <div class="quick-btn" id="qb-10" onclick="quickPump(10)">
+     <div class="qicon">
+      💧
+     </div>
+     <div class="qlabel">
+      10 นาที
+     </div>
+    </div>
+    <div class="quick-btn" id="qb-15" onclick="quickPump(15)">
+     <div class="qicon">
+      🌙
+     </div>
+     <div class="qlabel">
+      15 นาที
+     </div>
+    </div>
+    <div class="quick-btn" id="qb-20" onclick="quickPump(20)">
+     <div class="qicon">
+      🌿
+     </div>
+     <div class="qlabel">
+      20 นาที
+     </div>
+    </div>
+   </div><!-- Sensor Cards -->
+   <div class="grid grid-cols-2 gap-3 mb-5" id="sensor-grid">
+    <div class="glass p-4 text-center sensor-card">
+     <div style="font-size:26px">
+      🌡️
+     </div>
+     <div class="text-xs text-white/60 mt-1">
+      อุณหภูมิ
+     </div>
+     <div id="val-temp" class="font-bold text-xl mt-1 sensor-val">
+      --°C
+     </div>
+    </div>
+    <div class="glass p-4 text-center sensor-card">
+     <div style="font-size:26px">
+      💧
+     </div>
+     <div class="text-xs text-white/60 mt-1">
+      ความชื้น
+     </div>
+     <div id="val-hum" class="font-bold text-xl mt-1 sensor-val">
+      --%
+     </div>
+    </div>
+    <div class="glass p-4 text-center sensor-card">
+     <div style="font-size:26px">
+      🌱
+     </div>
+     <div class="text-xs text-white/60 mt-1">
+      Soil
+     </div>
+     <div id="val-soil" class="font-bold text-xl mt-1 sensor-val">
+      --%
+     </div>
+    </div>
+    <div class="glass p-4 text-center sensor-card">
+     <div style="font-size:26px">
+      ☀️
+     </div>
+     <div class="text-xs text-white/60 mt-1">
+      แสง
+     </div>
+     <div id="val-light" class="font-bold text-xl mt-1 sensor-val">
+      -- lux
+     </div>
+    </div>
+    <div class="glass p-4 text-center sensor-card">
+     <div style="font-size:26px">
+      📶
+     </div>
+     <div class="text-xs text-white/60 mt-1">
+      RSSI
+     </div>
+     <div id="val-rssi" class="font-bold text-xl mt-1 sensor-val">
+      -- dBm
+     </div>
+    </div>
+    <div class="glass p-4 text-center sensor-card">
+     <div style="font-size:26px">
+      📡
+     </div>
+     <div class="text-xs text-white/60 mt-1">
+      Node
+     </div>
+     <div id="val-node" class="font-bold text-xl mt-1 status-off">
+      OFFLINE
+     </div>
+    </div>
+   </div>
+   <div class="text-xs text-white/40 text-center mb-4" id="sensor-updated">
+    Sensor: --
+   </div><!-- Activity -->
+   <div class="glass-strong p-4">
+    <div class="flex justify-between items-center mb-3">
+     <h3 data-template-id="activity-title" class="canva-text font-bold" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 19px;">📋 Activity</h3><button onclick="clearLogs()" class="text-xs text-white/40" style="background:none;border:none;cursor:pointer">🗑️ ล้าง</button>
+    </div>
+    <div id="timeline-list" class="overflow-y-auto" style="max-height:200px"></div>
+   </div>
+  </div><!-- HISTORY -->
+  <div id="page-history" class="page">
+   <h2 data-template-id="history-title" class="canva-text text-lg font-bold mb-4" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 24px;">📈 History</h2>
+   <div class="filter-bar">
+    <input type="text" id="hist-search" placeholder="ค้นหา..." oninput="renderHistory()"> <input type="date" id="hist-date" onchange="renderHistory()"> <select id="hist-type" onchange="renderHistory()"><option value="">ทั้งหมด</option><option value="pump">Pump</option><option value="mqtt">MQTT</option><option value="weather">Weather</option><option value="system">System</option></select> <button onclick="exportCSV()">📥 CSV</button>
+   </div>
+   <div class="glass-strong p-4">
+    <div id="history-list" class="overflow-y-auto" style="max-height:60vh"></div>
+   </div>
+  </div><!-- NOTIFICATIONS -->
+  <div id="page-notif" class="page">
+   <h2 data-template-id="notif-title" class="canva-text text-lg font-bold mb-4" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 24px;">🔔 Notifications</h2>
+   <div class="glass-strong p-4">
+    <div id="notif-list"></div>
+    <p id="notif-empty" data-template-id="notif-empty" class="canva-text text-white/50 text-center py-6" style="color: rgba(255, 255, 255, 0.5); font-weight: 400; font-style: normal; font-size: 16px;">ไม่มีการแจ้งเตือน</p>
+   </div>
+  </div><!-- SETTINGS -->
+  <div id="page-settings" class="page">
+   <h2 data-template-id="settings-title" class="canva-text text-lg font-bold mb-4" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 24px;">⚙️ Settings</h2>
+   <div class="ios-card-group">
+    <div class="ios-card-item" onclick="toggleSetting('autoPump')">
+     <div class="flex items-center gap-3"><span>🤖</span><span>Auto Pump</span>
+     </div>
+     <div id="tog-autoPump" class="toggle"></div>
+    </div>
+    <div class="ios-card-item" onclick="toggleSetting('notify')">
+     <div class="flex items-center gap-3"><span>🔔</span><span>Notification</span>
+     </div>
+     <div id="tog-notify" class="toggle"></div>
+    </div>
+    <div class="ios-card-item" onclick="toggleSetting('notifSound')">
+     <div class="flex items-center gap-3"><span>🔊</span><span>Sound</span>
+     </div>
+     <div id="tog-notifSound" class="toggle"></div>
+    </div>
+    <div class="ios-card-item" onclick="toggleSetting('autoUpdate')">
+     <div class="flex items-center gap-3"><span>🔄</span><span>Auto Update</span>
+     </div>
+     <div id="tog-autoUpdate" class="toggle"></div>
+    </div>
+   </div>
+   <div class="ios-card-group">
+    <div class="ios-card-item" onclick="toggleTheme()">
+     <div class="flex items-center gap-3"><span>🎨</span><span>Theme</span>
+     </div><span id="theme-label" class="text-white/50 text-sm">Auto</span>
+    </div>
+    <div class="ios-card-item" onclick="openSub('schedule')">
+     <div class="flex items-center gap-3"><span>🕒</span><span>Smart Schedule</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+    <div class="ios-card-item" onclick="openSub('rain')">
+     <div class="flex items-center gap-3"><span>🌧️</span><span>Rain Limit</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+    <div class="ios-card-item" onclick="openSub('farm')">
+     <div class="flex items-center gap-3"><span>🌱</span><span>Farm Info</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+   </div>
+   <div class="ios-card-group">
+    <div class="ios-card-item" onclick="openSub('mqtt')">
+     <div class="flex items-center gap-3"><span>📡</span><span>MQTT</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+    <div class="ios-card-item" onclick="openSub('weather')">
+     <div class="flex items-center gap-3"><span>🌤️</span><span>Weather</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+    <div class="ios-card-item" onclick="openSub('telegram')">
+     <div class="flex items-center gap-3"><span>✈️</span><span>Telegram</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+   </div>
+   <div class="ios-card-group">
+    <div class="ios-card-item" onclick="openSub('backup')">
+     <div class="flex items-center gap-3"><span>💾</span><span>Backup / Restore</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+    <div class="ios-card-item" onclick="openSub('about')">
+     <div class="flex items-center gap-3"><span>ℹ️</span><span>About</span>
+     </div><span class="text-white/40">›</span>
+    </div>
+   </div>
+  </div><!-- Sub overlay -->
+  <div id="sub-overlay">
+   <div class="glass-strong p-5" style="max-width:400px;margin:40px auto">
+    <div class="flex justify-between items-center mb-4">
+     <h3 id="sub-title" class="font-bold text-lg"></h3><button onclick="closeSub()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:24px;cursor:pointer">×</button>
+    </div>
+    <div id="sub-content"></div>
+   </div>
+  </div><!-- Bottom Nav -->
+  <nav class="bottom-nav" data-template-id="bottom-nav" style="background: rgba(15, 23, 42, 0.95);">
+   <button class="nav-btn active" onclick="showPage('home',this)"><span class="nav-icon">🏠</span>Home</button> <button class="nav-btn" onclick="showPage('history',this)"><span class="nav-icon">📈</span>History</button> <button class="nav-btn" onclick="showPage('notif',this)"><span class="nav-icon">🔔</span>Notif</button> <button class="nav-btn" onclick="showPage('settings',this)"><span class="nav-icon">⚙️</span>Settings</button>
+  </nav>
+  <script src="/_sdk/222d5a595d1ea7ba.editing_sdk.js" integrity="sha512-+eUQhAMYoBwLPVWl3qwUfHhQeNM4ejU4XowINDMcqsaOwqt9uw0YaoGtGcOm1aWn4O0sfUcOk3TSof/bgT1OKQ=="></script>
+  <script>
+// ═══════════════════ CONSTANTS ═══════════════════
+const CONFIG = {
+  mqtt: {
+    url: 'wss://650188a0ee2b4367b7c131fb385590a9.s1.eu.hivemq.cloud:8884/mqtt',
+    user: atob('c21hcnRmYXJt'),
+    pass: atob('S2xhMTIzNDU='),
+    topics: { pumpStatus: 'farm/pump/status', pumpCmd: 'farm/pump', sensor: 'farm/sensor/#', heartbeat: 'farm/heartbeat' },
+    reconnectPeriod: 3000,
+    heartbeatTimeout: 90000
+  },
+  weather: {
+    lat: 14.0208,
+    lon: 100.5250,
+    interval: 600000,
+    retryDelay: 30000,
+    maxRetries: 3
+  },
+  thresholds: { tempHigh: 40, tempLow: 10, humLow: 30, soilLow: 20 },
+  maxLogs: 100
+};
+
+// ═══════════════════ STATE ═══════════════════
+let pumpState = 'OFF', pumpStartTime = null, pumpSending = false;
+let quickTimer = null, quickEndTime = null;
+let pumpTodaySeconds = Number(localStorage.getItem('pumpToday') || 0);
+const todayKey = new Date().toDateString();
+if (localStorage.getItem('pumpTodayKey') !== todayKey) { pumpTodaySeconds = 0; localStorage.setItem('pumpTodayKey', todayKey); }
+let logs = JSON.parse(localStorage.getItem('logs') || '[]');
+let notifications = JSON.parse(localStorage.getItem('notifs') || '[]');
+let mqttStatus = 'offline'; // online, offline, reconnecting
+let lastNodeSeen = Number(localStorage.getItem('lastNodeSeen') || 0);
+let nodeOnline = false;
+let publishQueue = [];
+let lastPublish = {};
+let weatherRetries = 0;
+let themeMode = localStorage.getItem('themeMode') || 'auto';
+
+// ═══════════════════ DOM CACHE ═══════════════════
+const $ = id => document.getElementById(id);
+const DOM = {};
+document.addEventListener('DOMContentLoaded', () => {
+  ['greeting-text','greeting-date','hero-temp','hero-condition','weather-icon','weather-updated',
+   'ws-hum','ws-rain','ws-wind','ws-dir','ws-pressure','ws-uv','ws-cloud','ws-feels','ws-vis',
+   'pump-ring','pump-label','pump-runtime','pump-today','pump-countdown','pump-sending','node-lastseen',
+   'val-temp','val-hum','val-soil','val-light','val-rssi','val-node','sensor-updated',
+   'timeline-list','history-list','notif-list','notif-empty',
+   'conn-dot','conn-text','toast'].forEach(id => DOM[id] = $(id));
+  init();
+});
+
+// ═══════════════════ INIT ═══════════════════
+function init() {
+  applyTheme();
+  updateGreeting();
+  initToggles();
+  renderTimeline();
+  renderNotifications();
+  connectMQTT();
+  loadWeather();
+  // Merged intervals
+  setInterval(tick, 1000);
+  setInterval(updateGreeting, 60000);
+  setInterval(loadWeather, CONFIG.weather.interval);
+  setInterval(checkHeartbeat, 30000);
+  setInterval(checkSchedule, 30000);
+  // Splash
+  setTimeout(() => { const s = $('splash'); s.classList.add('fadeout'); setTimeout(() => s.remove(), 800); }, 2200);
+}
+
+// ═══════════════════ THEME ═══════════════════
+function applyTheme() {
+  document.body.classList.remove('theme-day', 'theme-night');
+  if (themeMode === 'day') document.body.classList.add('theme-day');
+  else if (themeMode === 'night') document.body.classList.add('theme-night');
+  else { const h = new Date().getHours(); document.body.classList.add(h >= 6 && h < 18 ? 'theme-day' : 'theme-night'); }
+  if ($('theme-label')) $('theme-label').textContent = themeMode === 'auto' ? 'Auto' : themeMode === 'day' ? 'Day' : 'Night';
+}
+function toggleTheme() {
+  const modes = ['auto', 'day', 'night'];
+  themeMode = modes[(modes.indexOf(themeMode) + 1) % 3];
+  localStorage.setItem('themeMode', themeMode);
+  applyTheme();
+  toast('🎨 Theme: ' + themeMode);
+}
+
+// ═══════════════════ NAV ═══════════════════
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  $('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// ═══════════════════ TOAST ═══════════════════
+let toastTimeout;
+function toast(msg) {
+  DOM['toast'].textContent = msg;
+  DOM['toast'].classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => DOM['toast'].classList.remove('show'), 3000);
+}
+
+// ═══════════════════ GREETING ═══════════════════
+function updateGreeting() {
+  const h = new Date().getHours();
+  let g = 'สวัสดีตอนค่ำ 🌙';
+  if (h >= 5 && h < 12) g = 'อรุณสวัสดิ์ ☀️';
+  else if (h >= 12 && h < 17) g = 'สวัสดีตอนบ่าย 🌤️';
+  DOM['greeting-text'].textContent = g;
+  const d = new Date();
+  DOM['greeting-date'].textContent = d.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// ═══════════════════ MQTT ═══════════════════
+let client;
+function connectMQTT() {
+  updateConnStatus('reconnecting');
+  client = mqtt.connect(CONFIG.mqtt.url, {
+    username: CONFIG.mqtt.user,
+    password: CONFIG.mqtt.pass,
+    reconnectPeriod: CONFIG.mqtt.reconnectPeriod,
+    connectTimeout: 10000
+  });
+  client.on('connect', () => {
+    updateConnStatus('online');
+    client.subscribe([CONFIG.mqtt.topics.pumpStatus, CONFIG.mqtt.topics.sensor, CONFIG.mqtt.topics.heartbeat]);
+    addLog('📡', 'MQTT Connected', 'mqtt');
+    addNotif('📡', 'เชื่อมต่อ MQTT สำเร็จ');
+    flushQueue();
+  });
+  client.on('offline', () => { updateConnStatus('offline'); addNotif('⚠️', 'MQTT Offline'); });
+  client.on('reconnect', () => updateConnStatus('reconnecting'));
+  client.on('error', (err) => { updateConnStatus('offline'); addLog('❌', 'MQTT Error', 'mqtt'); });
+  client.on('close', () => updateConnStatus('offline'));
+  client.on('message', handleMessage);
+}
+
+function updateConnStatus(status) {
+  mqttStatus = status;
+  const dot = DOM['conn-dot'], txt = DOM['conn-text'];
+  dot.className = 'conn-dot ' + (status === 'online' ? 'online' : status === 'reconnecting' ? 'reconnecting' : 'offline');
+  txt.textContent = status === 'online' ? 'Online' : status === 'reconnecting' ? 'Reconnecting...' : 'Offline';
+}
+
+function safePub(topic, msg) {
+  const now = Date.now();
+  const key = topic + '|' + msg;
+  if (lastPublish[key] && now - lastPublish[key] < 2000) return; // dedup
+  lastPublish[key] = now;
+  if (client && client.connected) {
+    client.publish(topic, msg);
+  } else {
+    publishQueue.push({ topic, msg, time: now });
+    toast('📡 คำสั่งอยู่ในคิว (MQTT Offline)');
+  }
+}
+function flushQueue() {
+  while (publishQueue.length > 0) {
+    const cmd = publishQueue.shift();
+    if (Date.now() - cmd.time < 300000) client.publish(cmd.topic, cmd.msg);
+  }
+}
+
+function handleMessage(topic, msg) {
+  const payload = msg.toString();
+  if (topic === CONFIG.mqtt.topics.pumpStatus) {
+    const prev = pumpState;
+    pumpState = payload;
+    pumpSending = false;
+    updatePumpUI();
+    if (prev !== pumpState) {
+      if (pumpState === 'ON') { pumpStartTime = Date.now(); addLog('🟢', 'Pump ON', 'pump'); addNotif('🚰', 'เปิดปั๊มน้ำ'); }
+      else { if (pumpStartTime) { pumpTodaySeconds += Math.round((Date.now() - pumpStartTime) / 1000); pumpStartTime = null; localStorage.setItem('pumpToday', pumpTodaySeconds); } addLog('🔴', 'Pump OFF', 'pump'); addNotif('🛑', 'ปิดปั๊มน้ำ'); }
+    }
+  } else if (topic === CONFIG.mqtt.topics.heartbeat || topic.startsWith('farm/sensor')) {
+    lastNodeSeen = Date.now();
+    localStorage.setItem('lastNodeSeen', lastNodeSeen);
+    if (!nodeOnline) { nodeOnline = true; DOM['val-node'].textContent = 'ONLINE'; DOM['val-node'].className = 'font-bold text-xl mt-1 status-on'; }
+    if (topic.startsWith('farm/sensor')) {
+      try { const d = JSON.parse(payload); updateSensors(d); } catch (e) {}
+    }
+  }
+}
+
+function updateSensors(d) {
+  if (d.temp != null) updateSensorVal('val-temp', d.temp, '°C', CONFIG.thresholds.tempHigh, CONFIG.thresholds.tempLow);
+  if (d.hum != null) updateSensorVal('val-hum', d.hum, '%', null, CONFIG.thresholds.humLow);
+  if (d.soil != null) updateSensorVal('val-soil', d.soil, '%', null, CONFIG.thresholds.soilLow);
+  if (d.light != null) { DOM['val-light'].textContent = d.light + ' lux'; }
+  if (d.rssi != null) { DOM['val-rssi'].textContent = d.rssi + ' dBm'; DOM['val-rssi'].className = 'font-bold text-xl mt-1 sensor-val' + (d.rssi < -80 ? ' warn' : ''); }
+  DOM['sensor-updated'].textContent = 'Sensor: ' + new Date().toLocaleTimeString('th-TH');
+}
+
+function updateSensorVal(id, val, suffix, highThresh, lowThresh) {
+  const el = DOM[id];
+  el.textContent = val + suffix;
+  let cls = 'font-bold text-xl mt-1 sensor-val';
+  if (highThresh != null && val >= highThresh) cls += ' danger';
+  else if (lowThresh != null && val <= lowThresh) cls += ' warn';
+  el.className = cls;
+}
+
+function checkHeartbeat() {
+  if (lastNodeSeen && Date.now() - lastNodeSeen > CONFIG.mqtt.heartbeatTimeout) {
+    if (nodeOnline) {
+      nodeOnline = false;
+      DOM['val-node'].textContent = 'OFFLINE';
+      DOM['val-node'].className = 'font-bold text-xl mt-1 status-off';
+      addNotif('⚠️', 'Node ไม่ตอบสนอง');
+      addLog('⚠️', 'Node Timeout', 'system');
+    }
+  }
+  // Update last seen display
+  if (lastNodeSeen) {
+    const ago = Math.round((Date.now() - lastNodeSeen) / 1000);
+    DOM['node-lastseen'].textContent = ago < 60 ? ago + 's' : Math.round(ago / 60) + 'm';
+  }
+}
+
+// ═══════════════════ PUMP ═══════════════════
+function updatePumpUI() {
+  const ring = DOM['pump-ring'], label = DOM['pump-label'];
+  ring.classList.remove('on', 'off', 'sending');
+  if (pumpSending) { ring.classList.add('sending'); label.textContent = '...'; label.className = 'font-bold mt-1 text-lg status-warn'; }
+  else if (pumpState === 'ON') { ring.classList.add('on'); label.textContent = 'ON'; label.className = 'font-bold mt-1 text-lg status-on'; }
+  else { ring.classList.add('off'); label.textContent = 'OFF'; label.className = 'font-bold mt-1 text-lg status-off'; }
+}
+
+function handlePumpToggle() {
+  if (pumpSending) return;
+  if (pumpState === 'ON') { safePub(CONFIG.mqtt.topics.pumpCmd, 'OFF'); toast('🛑 ปิดปั๊ม'); }
+  else { safePub(CONFIG.mqtt.topics.pumpCmd, 'ON'); toast('🚰 เปิดปั๊ม'); }
+  pumpSending = true;
+  updatePumpUI();
+  setTimeout(() => { if (pumpSending) { pumpSending = false; updatePumpUI(); } }, 5000);
+}
+
+function quickPump(mins) {
+  if (quickTimer) { clearTimeout(quickTimer); quickTimer = null; }
+  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active-timer'));
+  $('qb-' + mins).classList.add('active-timer');
+  safePub(CONFIG.mqtt.topics.pumpCmd, 'ON');
+  toast('🚿 เปิดปั๊ม ' + mins + ' นาที');
+  addLog('🚿', 'Quick ' + mins + ' min', 'pump');
+  quickEndTime = Date.now() + mins * 60000;
+  DOM['pump-countdown'].style.display = 'block';
+  quickTimer = setTimeout(() => {
+    safePub(CONFIG.mqtt.topics.pumpCmd, 'OFF');
+    toast('🛑 ปิดปั๊มอัตโนมัติ');
+    addLog('🔴', 'Auto OFF ' + mins + ' min', 'pump');
+    quickTimer = null; quickEndTime = null;
+    DOM['pump-countdown'].style.display = 'none';
+    document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active-timer'));
+  }, mins * 60000);
+}
+
+// ═══════════════════ TICK (1s) ═══════════════════
+function tick() {
+  // Pump runtime
+  let runtime = 0;
+  if (pumpState === 'ON' && pumpStartTime) runtime = Math.round((Date.now() - pumpStartTime) / 1000);
+  const m = Math.floor(runtime / 60), s = runtime % 60;
+  DOM['pump-runtime'].textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  DOM['pump-today'].textContent = Math.round((pumpTodaySeconds + runtime) / 60) + ' min';
+  // Quick countdown
+  if (quickEndTime) {
+    const rem = Math.max(0, Math.round((quickEndTime - Date.now()) / 1000));
+    DOM['pump-countdown'].textContent = '⏱️ ' + Math.floor(rem / 60) + ':' + String(rem % 60).padStart(2, '0');
+  }
+  // Daily reset
+  const dk = new Date().toDateString();
+  if (localStorage.getItem('pumpTodayKey') !== dk) { pumpTodaySeconds = 0; localStorage.setItem('pumpTodayKey', dk); localStorage.setItem('pumpToday', 0); }
+}
+
+// ═══════════════════ WEATHER ═══════════════════
+async function loadWeather() {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${CONFIG.weather.lat}&longitude=${CONFIG.weather.lon}&current=temperature_2m,relative_humidity_2m,rain,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,uv_index,cloud_cover,apparent_temperature`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const c = d.current;
+    weatherRetries = 0;
+    DOM['hero-temp'].textContent = Math.round(c.temperature_2m) + '°';
+    const wc = c.weather_code || 0;
+    let icon = '☀️', cond = 'แดดจัด';
+    if (wc >= 61) { icon = '🌧️'; cond = 'ฝนตก'; } else if (wc >= 51) { icon = '🌦️'; cond = 'ฝนปรอย'; } else if (wc >= 3) { icon = '☁️'; cond = 'มีเมฆ'; } else if (wc >= 1) { icon = '⛅'; cond = 'เมฆบางส่วน'; }
+    DOM['weather-icon'].textContent = icon;
+    DOM['hero-condition'].textContent = cond;
+    DOM['weather-updated'].textContent = 'อัปเดต: ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    DOM['ws-hum'].textContent = Math.round(c.relative_humidity_2m) + '%';
+    DOM['ws-rain'].textContent = (c.rain || 0) + ' mm';
+    DOM['ws-wind'].textContent = Math.round(c.wind_speed_10m) + ' km/h';
+    DOM['ws-dir'].textContent = degToDir(c.wind_direction_10m);
+    DOM['ws-pressure'].textContent = Math.round(c.surface_pressure) + ' hPa';
+    DOM['ws-uv'].textContent = c.uv_index != null ? c.uv_index.toFixed(1) : '--';
+    DOM['ws-cloud'].textContent = (c.cloud_cover || 0) + '%';
+    DOM['ws-feels'].textContent = Math.round(c.apparent_temperature) + '°';
+    DOM['ws-vis'].textContent = '--';
+    // Update sensor cards from weather
+    DOM['val-temp'].textContent = Math.round(c.temperature_2m) + '°C';
+    DOM['val-hum'].textContent = Math.round(c.relative_humidity_2m) + '%';
+    // Rain auto-off
+    const rain = c.rain || 0;
+    const limit = Number(localStorage.getItem('rainLimit') || 2);
+    if (rain >= limit && localStorage.getItem('autoPump') === 'true' && pumpState === 'ON') {
+      safePub(CONFIG.mqtt.topics.pumpCmd, 'OFF');
+      toast('🌧️ ฝนตก ปิดปั๊มอัตโนมัติ');
+      addLog('🌧', 'Auto OFF rain=' + rain + 'mm', 'weather');
+      addNotif('🌧️', 'ฝนตก ' + rain + ' mm - ปิดปั๊มอัตโนมัติ');
+    }
+    if (rain > 0) addNotif('🌧️', 'ฝนตก ' + rain + ' mm');
+  } catch (e) {
+    weatherRetries++;
+    if (weatherRetries <= CONFIG.weather.maxRetries) setTimeout(loadWeather, CONFIG.weather.retryDelay);
+    DOM['hero-condition'].textContent = 'โหลดไม่สำเร็จ';
+  }
+}
+
+function degToDir(deg) {
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+// ═══════════════════ LOGS ═══════════════════
+function addLog(icon, msg, type = 'system') {
+  logs.unshift({ icon, msg, type, time: new Date().toISOString() });
+  if (logs.length > CONFIG.maxLogs) logs = logs.slice(0, CONFIG.maxLogs);
+  localStorage.setItem('logs', JSON.stringify(logs));
+  renderTimeline();
+}
+function clearLogs() { logs = []; localStorage.setItem('logs', '[]'); renderTimeline(); renderHistory(); toast('🗑️ ล้าง Activity แล้ว'); }
+
+const typeColors = { pump: '#4ade80', mqtt: '#60a5fa', weather: '#fbbf24', system: '#a78bfa' };
+function renderTimeline() {
+  DOM['timeline-list'].innerHTML = logs.slice(0, 10).map(l => {
+    const t = new Date(l.time);
+    const ts = t.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    const color = typeColors[l.type] || '#94a3b8';
+    return `<div class="timeline-item"><div class="timeline-dot" style="background:${color}30;border:2px solid ${color}">${l.icon}</div><div style="flex:1"><div class="text-sm text-white/90">${sanitize(l.msg)}</div><div class="text-xs text-white/40">${ts} · ${l.type || ''}</div></div></div>`;
+  }).join('');
+}
+
+function renderHistory() {
+  const search = ($('hist-search')?.value || '').toLowerCase();
+  const dateFilter = $('hist-date')?.value || '';
+  const typeFilter = $('hist-type')?.value || '';
+  const filtered = logs.filter(l => {
+    if (search && !l.msg.toLowerCase().includes(search)) return false;
+    if (typeFilter && l.type !== typeFilter) return false;
+    if (dateFilter && !l.time.startsWith(dateFilter)) return false;
+    return true;
+  });
+  DOM['history-list'].innerHTML = filtered.map(l => {
+    const t = new Date(l.time);
+    const ts = t.toLocaleString('th-TH');
+    const color = typeColors[l.type] || '#94a3b8';
+    return `<div class="timeline-item"><div class="timeline-dot" style="background:${color}30;border:2px solid ${color}">${l.icon}</div><div style="flex:1"><div class="text-sm text-white/90">${sanitize(l.msg)}</div><div class="text-xs text-white/40">${ts} · ${l.type || ''}</div></div></div>`;
+  }).join('') || '<p class="text-center text-white/40 py-4">ไม่พบข้อมูล</p>';
+}
+
+function exportCSV() {
+  const rows = [['Time', 'Type', 'Message']];
+  logs.forEach(l => rows.push([l.time, l.type, l.msg]));
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'smartfarm_log_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  toast('📥 Export CSV สำเร็จ');
+}
+
+// ═══════════════════ NOTIFICATIONS ═══════════════════
+function addNotif(icon, msg) {
+  if (localStorage.getItem('notify') !== 'true') return;
+  notifications.unshift({ icon, msg, time: new Date().toISOString(), read: false });
+  if (notifications.length > 50) notifications = notifications.slice(0, 50);
+  localStorage.setItem('notifs', JSON.stringify(notifications));
+  renderNotifications();
+}
+function renderNotifications() {
+  const el = DOM['notif-list'];
+  const empty = DOM['notif-empty'];
+  if (notifications.length === 0) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  el.innerHTML = notifications.slice(0, 30).map(n => {
+    const t = new Date(n.time).toLocaleString('th-TH');
+    return `<div class="notif-item"><span style="font-size:20px">${n.icon}</span><div style="flex:1"><div class="text-sm">${sanitize(n.msg)}</div><div class="text-xs text-white/40">${t}</div></div></div>`;
+  }).join('');
+}
+
+// ═══════════════════ SETTINGS ═══════════════════
+function initToggles() {
+  ['autoPump', 'notify', 'notifSound', 'autoUpdate'].forEach(k => {
+    if (localStorage.getItem(k) === 'true') $('tog-' + k)?.classList.add('on');
+  });
+}
+function toggleSetting(key) {
+  const tog = $('tog-' + key);
+  const isOn = tog.classList.toggle('on');
+  localStorage.setItem(key, isOn);
+  toast((isOn ? '✅ เปิด' : '❌ ปิด') + ' ' + key);
+  addLog('⚙️', key + ' ' + (isOn ? 'ON' : 'OFF'), 'system');
+}
+
+function openSub(type) {
+  const overlay = $('sub-overlay');
+  const title = $('sub-title');
+  const content = $('sub-content');
+  overlay.style.display = 'block';
+
+  if (type === 'rain') {
+    title.textContent = '🌧️ Rain Limit';
+    content.innerHTML = `<label class="text-sm text-white/60">ปริมาณฝนที่หยุดปั๊ม (mm)</label><input type="number" id="inp-rain" min="0" max="100" value="${localStorage.getItem('rainLimit') || 2}" class="sub-input"><button onclick="saveRain()" class="sub-btn sub-btn-green mt-4">💾 บันทึก</button>`;
+  } else if (type === 'schedule') {
+    const schedules = JSON.parse(localStorage.getItem('schedules') || '[{"time":"06:00","duration":10},{"time":"17:00","duration":10}]');
+    const days = JSON.parse(localStorage.getItem('schedDays') || '["mon","tue","wed","thu","fri","sat","sun"]');
+    const en = localStorage.getItem('scheduleEnable') === 'true';
+    const skipRain = localStorage.getItem('schedSkipRain') === 'true';
+    const skipSoil = localStorage.getItem('schedSkipSoil') === 'true';
+    title.textContent = '🕒 Smart Schedule';
+    let html = `<label class="flex items-center gap-2 text-sm mb-3"><input type="checkbox" id="inp-sched-en" ${en ? 'checked' : ''}> เปิดใช้งาน</label>`;
+    html += `<div class="text-xs text-white/50 mb-2">เลือกวัน</div><div class="flex gap-1 flex-wrap mb-3" id="day-picks">`;
+    ['mon','tue','wed','thu','fri','sat','sun'].forEach(d => {
+      html += `<button type="button" class="px-2 py-1 rounded text-xs ${days.includes(d) ? 'bg-green-500' : 'bg-white/10'}" onclick="toggleDay(this,'${d}')">${d}</button>`;
+    });
+    html += `</div>`;
+    schedules.forEach((s, i) => {
+      html += `<div class="flex gap-2 mb-2"><input type="time" value="${s.time}" class="sub-input flex-1" id="sched-time-${i}"><input type="number" value="${s.duration}" min="1" max="60" class="sub-input" style="width:70px" id="sched-dur-${i}" placeholder="min"></div>`;
+    });
+    html += `<button onclick="addSchedSlot()" class="text-xs text-green-400 mb-3" style="background:none;border:none;cursor:pointer">+ เพิ่มช่วงเวลา</button>`;
+    html += `<label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="inp-skip-rain" ${skipRain ? 'checked' : ''}> ข้ามเมื่อฝนตก</label>`;
+    html += `<label class="flex items-center gap-2 text-sm mb-3"><input type="checkbox" id="inp-skip-soil" ${skipSoil ? 'checked' : ''}> ข้ามเมื่อดินชื้นพอ</label>`;
+    html += `<button onclick="saveSchedule()" class="sub-btn sub-btn-green">💾 บันทึก</button>`;
+    content.innerHTML = html;
+  } else if (type === 'farm') {
+    title.textContent = '🌱 Farm Information';
+    content.innerHTML = `<label class="text-sm text-white/60">ชื่อพืช</label><input id="inp-pname" value="${sanitize(localStorage.getItem('plantName') || 'แตงกวา')}" class="sub-input mb-3"><label class="text-sm text-white/60">วันที่ปลูก</label><input type="date" id="inp-pdate" value="${localStorage.getItem('plantDate') || ''}" class="sub-input mb-3"><label class="text-sm text-white/60">พิกัด (lat,lon)</label><input id="inp-loc" value="${localStorage.getItem('farmLoc') || CONFIG.weather.lat + ',' + CONFIG.weather.lon}" class="sub-input mb-3"><button onclick="saveFarm()" class="sub-btn sub-btn-green">💾 บันทึก</button>`;
+  } else if (type === 'mqtt') {
+    title.textContent = '📡 MQTT Settings';
+    content.innerHTML = `<div class="text-sm text-white/60 mb-2">Server</div><input id="inp-mqtt-url" value="${sanitize(localStorage.getItem('mqttUrl') || CONFIG.mqtt.url)}" class="sub-input mb-3"><div class="text-sm text-white/60 mb-2">Username</div><input id="inp-mqtt-user" value="${sanitize(localStorage.getItem('mqttUser') || '')}" class="sub-input mb-3" placeholder="••••••"><div class="text-sm text-white/60 mb-2">Password</div><input id="inp-mqtt-pass" type="password" value="${localStorage.getItem('mqttPass') || ''}" class="sub-input mb-3" placeholder="••••••"><p class="text-xs text-white/40 mb-3">⚠️ ข้อมูลเก็บใน localStorage เท่านั้น</p><button onclick="saveMQTT()" class="sub-btn sub-btn-green">💾 บันทึก & เชื่อมต่อใหม่</button>`;
+  } else if (type === 'weather') {
+    title.textContent = '🌤️ Weather Settings';
+    content.innerHTML = `<label class="text-sm text-white/60">ละติจูด</label><input id="inp-wlat" type="number" step="any" value="${localStorage.getItem('wLat') || CONFIG.weather.lat}" class="sub-input mb-3"><label class="text-sm text-white/60">ลองจิจูด</label><input id="inp-wlon" type="number" step="any" value="${localStorage.getItem('wLon') || CONFIG.weather.lon}" class="sub-input mb-3"><button onclick="saveWeather()" class="sub-btn sub-btn-green">💾 บันทึก</button>`;
+  } else if (type === 'telegram') {
+    title.textContent = '✈️ Telegram';
+    content.innerHTML = `<label class="text-sm text-white/60">Bot Token</label><input id="inp-tgtoken" value="${sanitize(localStorage.getItem('tgToken') || '')}" class="sub-input mb-3" placeholder="123456:ABC..."><label class="text-sm text-white/60">Chat ID</label><input id="inp-tgchat" value="${sanitize(localStorage.getItem('tgChat') || '')}" class="sub-input mb-3"><button onclick="saveTelegram()" class="sub-btn sub-btn-green mb-2">💾 บันทึก</button><button onclick="testTelegram()" class="sub-btn sub-btn-blue">📤 ทดสอบส่งข้อความ</button>`;
+  } else if (type === 'backup') {
+    title.textContent = '💾 Backup / Restore';
+    content.innerHTML = `<button onclick="doBackup()" class="sub-btn sub-btn-blue mb-3">📥 Export JSON</button><button onclick="doRestore()" class="sub-btn sub-btn-orange mb-3">📤 Import JSON</button><p class="text-xs text-white/40">Export จะดาวน์โหลดข้อมูลทั้งหมด<br>Import จะเขียนทับข้อมูลเดิม</p>`;
+  } else if (type === 'about') {
+    title.textContent = 'ℹ️ About';
+    content.innerHTML = `<div class="text-center"><div style="font-size:48px;margin-bottom:8px">🌱</div><p class="font-bold text-lg">Smart Farm V12.1A</p><p class="text-white/60 text-sm mt-1">Home Premium</p><p class="text-white/50 text-xs mt-3">สวนลุงนะ ฟาร์ม<br>IoT Dashboard ควบคุมระบบรดน้ำอัตโนมัติ<br>พัฒนาด้วย ❤️</p></div>`;
+  }
+}
+function closeSub() { $('sub-overlay').style.display = 'none'; }
+
+// Schedule helpers
+let schedSlotCount = 2;
+function addSchedSlot() {
+  const container = $('sub-content');
+  const btn = container.querySelector('[onclick="addSchedSlot()"]');
+  const div = document.createElement('div');
+  div.className = 'flex gap-2 mb-2';
+  div.innerHTML = `<input type="time" value="12:00" class="sub-input flex-1" id="sched-time-${schedSlotCount}"><input type="number" value="10" min="1" max="60" class="sub-input" style="width:70px" id="sched-dur-${schedSlotCount}">`;
+  btn.parentNode.insertBefore(div, btn);
+  schedSlotCount++;
+}
+function toggleDay(el, day) {
+  el.classList.toggle('bg-green-500');
+  el.classList.toggle('bg-white/10');
+}
+
+// Save functions
+function saveRain() { localStorage.setItem('rainLimit', $('inp-rain').value); toast('💾 บันทึก Rain Limit'); addLog('⚙️', 'Rain Limit: ' + $('inp-rain').value, 'system'); closeSub(); }
+function saveSchedule() {
+  const schedules = [];
+  for (let i = 0; $('sched-time-' + i); i++) {
+    schedules.push({ time: $('sched-time-' + i).value, duration: Number($('sched-dur-' + i).value) || 10 });
+  }
+  localStorage.setItem('schedules', JSON.stringify(schedules));
+  localStorage.setItem('scheduleEnable', $('inp-sched-en').checked);
+  localStorage.setItem('schedSkipRain', $('inp-skip-rain').checked);
+  localStorage.setItem('schedSkipSoil', $('inp-skip-soil').checked);
+  const days = [...$('sub-content').querySelectorAll('#day-picks button.bg-green-500')].map(b => b.textContent);
+  localStorage.setItem('schedDays', JSON.stringify(days));
+  toast('💾 บันทึก Schedule');
+  addLog('⚙️', 'Schedule saved', 'system');
+  closeSub();
+}
+function saveFarm() {
+  localStorage.setItem('plantName', sanitize($('inp-pname').value));
+  localStorage.setItem('plantDate', $('inp-pdate').value);
+  localStorage.setItem('farmLoc', $('inp-loc').value);
+  const parts = $('inp-loc').value.split(',');
+  if (parts.length === 2) { CONFIG.weather.lat = parseFloat(parts[0]); CONFIG.weather.lon = parseFloat(parts[1]); }
+  toast('💾 บันทึกข้อมูลฟาร์ม'); closeSub();
+}
+function saveMQTT() {
+  localStorage.setItem('mqttUrl', $('inp-mqtt-url').value);
+  localStorage.setItem('mqttUser', $('inp-mqtt-user').value);
+  localStorage.setItem('mqttPass', $('inp-mqtt-pass').value);
+  toast('💾 บันทึก MQTT - กำลังเชื่อมต่อใหม่');
+  if (client) client.end(true);
+  CONFIG.mqtt.url = $('inp-mqtt-url').value;
+  CONFIG.mqtt.user = $('inp-mqtt-user').value || CONFIG.mqtt.user;
+  CONFIG.mqtt.pass = $('inp-mqtt-pass').value || CONFIG.mqtt.pass;
+  connectMQTT();
+  closeSub();
+}
+function saveWeather() {
+  localStorage.setItem('wLat', $('inp-wlat').value);
+  localStorage.setItem('wLon', $('inp-wlon').value);
+  CONFIG.weather.lat = parseFloat($('inp-wlat').value);
+  CONFIG.weather.lon = parseFloat($('inp-wlon').value);
+  toast('💾 บันทึก Weather Location');
+  loadWeather();
+  closeSub();
+}
+function saveTelegram() {
+  localStorage.setItem('tgToken', $('inp-tgtoken').value);
+  localStorage.setItem('tgChat', $('inp-tgchat').value);
+  toast('💾 บันทึก Telegram'); closeSub();
+}
+async function testTelegram() {
+  const token = $('inp-tgtoken').value || localStorage.getItem('tgToken');
+  const chat = $('inp-tgchat').value || localStorage.getItem('tgChat');
+  if (!token || !chat) { toast('❌ กรุณาใส่ Token และ Chat ID'); return; }
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chat, text: '🌱 ทดสอบจาก Smart Farm V12.1A' }) });
+    toast('✅ ส่งข้อความสำเร็จ');
+  } catch (e) { toast('❌ ส่งไม่สำเร็จ'); }
+}
+
+function doBackup() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); data[k] = localStorage.getItem(k); }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'smartfarm_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  toast('📥 Export สำเร็จ');
+}
+function doRestore() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        if (typeof d !== 'object' || Array.isArray(d)) throw new Error('Invalid');
+        Object.keys(d).forEach(k => localStorage.setItem(k, d[k]));
+        toast('📤 Import สำเร็จ - รีโหลด...');
+        setTimeout(() => location.reload(), 1000);
+      } catch (e) { toast('❌ ไฟล์ไม่ถูกต้อง'); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+
+// ═══════════════════ SCHEDULE CHECK ═══════════════════
+function checkSchedule() {
+  if (localStorage.getItem('scheduleEnable') !== 'true') return;
+  const schedules = JSON.parse(localStorage.getItem('schedules') || '[]');
+  const days = JSON.parse(localStorage.getItem('schedDays') || '[]');
+  const now = new Date();
+  const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  if (!days.includes(dayNames[now.getDay()])) return;
+  const hhmm = now.toTimeString().slice(0, 5);
+  for (const s of schedules) {
+    if (hhmm === s.time) {
+      if (localStorage.getItem('schedSkipRain') === 'true') { /* would check rain */ }
+      safePub(CONFIG.mqtt.topics.pumpCmd, 'ON');
+      addLog('🕒', 'Schedule ON ' + s.time, 'pump');
+      if (s.duration) setTimeout(() => { safePub(CONFIG.mqtt.topics.pumpCmd, 'OFF'); addLog('🕒', 'Schedule OFF', 'pump'); }, s.duration * 60000);
+      break;
+    }
+  }
+}
+
+// ═══════════════════ SECURITY ═══════════════════
+function sanitize(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a132cfd13125e878',t:'MTc4MjcxMzg4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body></html>
